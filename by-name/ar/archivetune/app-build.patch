@@ -1,5 +1,7 @@
---- a/app/build.gradle.kts	2026-09-24 13:42:01
-+++ b/app/build.gradle.kts	2026-09-24 14:10:38
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 501f99cf0..f03a85c1d 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
 @@ -1,481 +1,25 @@
 -import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 -import java.util.Properties
@@ -11,17 +13,17 @@
 -    alias(libs.plugins.kotlin.serialization)
 -    alias(libs.plugins.compose.compiler)
 -    alias(libs.plugins.aboutlibraries.android)
+-}
+-
+-val localProperties = Properties()
+-val localPropertiesFile = rootProject.file("local.properties")
+-if (localPropertiesFile.exists()) {
+-    localProperties.load(localPropertiesFile.inputStream())
 +    kotlin("jvm")
 +    id("org.jetbrains.compose") version "1.7.0"
 +    id("org.jetbrains.kotlin.plugin.compose")
  }
  
--val localProperties = Properties()
--val localPropertiesFile = rootProject.file("local.properties")
--if (localPropertiesFile.exists()) {
--    localProperties.load(localPropertiesFile.inputStream())
--}
--
 -fun String.asBuildConfigString(): String =
 -    "\"${
 -        replace("\\", "\\\\")
@@ -111,12 +113,7 @@
 -            providers.gradleProperty("nightlyVersionName").orNull?.trim().orEmpty()
 -        if (nightlyVersionName.isNotEmpty()) {
 -            versionName = nightlyVersionName
-+compose.desktop {
-+    application {
-+        mainClass = "moe.rukamori.archivetune.DesktopMainKt"
-+        nativeDistributions {
-+            packageName = "ArchiveTune"
-         }
+-        }
 -        buildConfigField("String", "DISTRIBUTION", "\"gms\"")
 -        buildConfigField("boolean", "UPDATER_AVAILABLE", "true")
 -
@@ -155,9 +152,7 @@
 -            buildConfigField("long", "DISCORD_APPLICATION_ID_LONG", "${discordApplicationIdLong}L")
 -            buildConfigField("String", "DISCORD_REDIRECT_SCHEME", "\"$discordRedirectScheme\"")
 -            manifestPlaceholders["discordRedirectScheme"] = discordRedirectScheme
-+        buildTypes.release.proguard {
-+            isEnabled.set(false)
-         }
+-        }
 -        create("foss") {
 -            dimension = "distribution"
 -            buildConfigField("String", "DISTRIBUTION", "\"foss\"")
@@ -174,14 +169,21 @@
 -        create("tv") {
 -            dimension = "device"
 -            buildConfigField("String", "DEVICE", "\"tv\"")
--        }
++compose.desktop {
++    application {
++        mainClass = "moe.rukamori.archivetune.DesktopMainKt"
++        nativeDistributions {
++            packageName = "ArchiveTune"
+         }
 -        create("universal") {
 -            dimension = "abi"
 -            ndk {
 -                abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
 -            }
 -            buildConfigField("String", "ARCHITECTURE", "\"universal\"")
--        }
++        buildTypes.release.proguard {
++            isEnabled.set(false)
+         }
 -        create("arm64") {
 -            dimension = "abi"
 -            ndk { abiFilters += "arm64-v8a" }
@@ -202,7 +204,7 @@
 -            ndk { abiFilters += "x86_64" }
 -            buildConfigField("String", "ARCHITECTURE", "\"x86_64\"")
 -        }
-     }
+-    }
 -
 -    signingConfigs {
 -        create("release") {
@@ -273,7 +275,7 @@
 -    dependenciesInfo {
 -        includeInApk = false
 -        includeInBundle = false
--    }
+     }
 -
 -    lint {
 -        lintConfig = file("lint.xml")
@@ -302,16 +304,16 @@
 -        }
 -    }
 -
- }
- 
+-}
+-
 -kotlin {
 -    jvmToolchain(21)
 -}
 -
 -ksp {
 -    arg("room.schemaLocation", "$projectDir/schemas")
--}
--
+ }
+ 
  dependencies {
 -    implementation(libs.guava)
 -    implementation(libs.coroutines.guava)
@@ -428,9 +430,7 @@
 -    implementation("androidx.compose.material3.adaptive:adaptive:1.3.0-rc01")
 -    implementation(libs.accompanist.lyrics.ui)
 -    implementation(libs.accompanist.lyrics.core)
-+    implementation(project(":android-stubs"))
-+    implementation("org.robolectric:android-all:14-robolectric-10818077")
- }
+-}
 -
 -androidComponents {
 -    onVariants(selector().all()) { variant ->
@@ -495,4 +495,251 @@
 -        "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
 -        "org.jetbrains.kotlin:kotlin-metadata-jvm:${libs.versions.kotlinMetadata.get()}",
 -    )
--}
++    implementation(project(":android-stubs"))
++    implementation("org.robolectric:android-all:14-robolectric-10818077")
+ }
+diff --git a/app/src/main/kotlin/moe/rukamori/archivetune/utils/AppUpdateInstaller.kt b/app/src/main/kotlin/moe/rukamori/archivetune/utils/AppUpdateInstaller.kt
+index 5d5f332df..884538700 100644
+--- a/app/src/main/kotlin/moe/rukamori/archivetune/utils/AppUpdateInstaller.kt
++++ b/app/src/main/kotlin/moe/rukamori/archivetune/utils/AppUpdateInstaller.kt
+@@ -1,226 +1,5 @@
+-/*
+- * ArchiveTune (2026)
+- * © Rukamori — github.com/rukamori
+- * GPL-3.0 License | Contributors: see git history
+- * Do not remove or alter this notice. - Per GPL-3.0 Section 4 & Section 5
+- */
+-
+ package moe.rukamori.archivetune.utils
+-
+-import android.content.Context
+-import android.content.Intent
+-import androidx.core.content.FileProvider
+-import io.ktor.client.HttpClient
+-import io.ktor.client.engine.okhttp.OkHttp
+-import io.ktor.client.request.prepareGet
+-import io.ktor.client.statement.bodyAsChannel
+-import io.ktor.http.contentLength
+-import io.ktor.utils.io.readAvailable
+-import kotlinx.coroutines.CancellationException
+-import kotlinx.coroutines.Dispatchers
+-import kotlinx.coroutines.currentCoroutineContext
+-import kotlinx.coroutines.ensureActive
+-import kotlinx.coroutines.withContext
+-import moe.rukamori.archivetune.BuildConfig
+-import okhttp3.ConnectionPool
+-import java.io.File
+-import java.io.IOException
+-import java.util.Locale
+-import java.util.concurrent.TimeUnit
+-import java.util.zip.ZipFile
+-
+ object AppUpdateInstaller {
+-    data class Progress(
+-        val downloadedBytes: Long,
+-        val totalBytes: Long,
+-    ) {
+-        val fraction: Float?
+-            get() =
+-                totalBytes
+-                    .takeIf { it > 0L }
+-                    ?.let { downloadedBytes.toFloat() / it.toFloat() }
+-                    ?.coerceIn(0f, 1f)
+-    }
+-
+-    private val client by lazy {
+-        HttpClient(OkHttp) {
+-            engine {
+-                config {
+-                    connectTimeout(30, TimeUnit.SECONDS)
+-                    readTimeout(60, TimeUnit.SECONDS)
+-                    connectionPool(ConnectionPool(2, 30, TimeUnit.SECONDS))
+-                    retryOnConnectionFailure(true)
+-                    followRedirects(true)
+-                }
+-            }
+-        }
+-    }
+-
+-    suspend fun downloadAndInstall(
+-        context: Context,
+-        url: String,
+-        onProgress: (Progress) -> Unit,
+-    ): Result<Unit> {
+-        if (BuildConfig.DISTRIBUTION != "gms") {
+-            return Result.failure(IllegalStateException("In-app updates are only available for GMS builds"))
+-        }
+-
+-        return try {
+-            val apkFile =
+-                withContext(Dispatchers.IO) {
+-                    downloadApk(context.applicationContext, url, onProgress)
+-                }
+-            withContext(Dispatchers.Main) {
+-                installApk(context, apkFile)
+-            }
+-            Result.success(Unit)
+-        } catch (e: CancellationException) {
+-            throw e
+-        } catch (e: Throwable) {
+-            Result.failure(e)
+-        }
+-    }
+-
+-    private suspend fun downloadApk(
+-        context: Context,
+-        url: String,
+-        onProgress: (Progress) -> Unit,
+-    ): File {
+-        if (url.isBlank()) {
+-            throw IOException("Update download URL is empty")
+-        }
+-
+-        val updateDir = File(context.cacheDir, UpdateDirectoryName)
+-        updateDir.mkdirs()
+-        updateDir.listFiles()?.forEach { file -> file.deleteRecursively() }
+-
+-        val downloadedFile = File(updateDir, DownloadFileName)
+-
+-        client.prepareGet(url).execute { response ->
+-            val responseCode = response.status.value
+-            if (responseCode !in 200..299) {
+-                throw IOException("Update download failed: HTTP $responseCode")
+-            }
+-
+-            val totalBytes = response.contentLength() ?: -1L
+-            val channel = response.bodyAsChannel()
+-            downloadedFile.outputStream().use { output ->
+-                val buffer = ByteArray(STREAM_BUFFER_SIZE)
+-                var downloadedBytes = 0L
+-                var lastUpdateMs = 0L
+-                while (!channel.isClosedForRead) {
+-                    currentCoroutineContext().ensureActive()
+-                    val read = channel.readAvailable(buffer)
+-                    if (read == -1) break
+-                    output.write(buffer, 0, read)
+-                    downloadedBytes += read.toLong()
+-                    val now = System.currentTimeMillis()
+-                    if (now - lastUpdateMs >= PROGRESS_UPDATE_INTERVAL_MS) {
+-                        emitProgress(downloadedBytes, totalBytes, onProgress)
+-                        lastUpdateMs = now
+-                    }
+-                }
+-                emitProgress(downloadedBytes, totalBytes, onProgress)
+-            }
+-        }
+-
+-        return if (url.lowercase(Locale.US).substringBefore('?').endsWith(".apk")) {
+-            downloadedFile.renameAsApk()
+-        } else {
+-            extractGmsApk(downloadedFile, File(updateDir, ApkFileName))
+-                ?: if (downloadedFile.containsApkManifest()) {
+-                    downloadedFile.renameAsApk()
+-                } else {
+-                    throw IOException("No GMS APK found in update artifact")
+-                }
+-        }
+-    }
+-
+-    private suspend fun emitProgress(
+-        downloadedBytes: Long,
+-        totalBytes: Long,
+-        onProgress: (Progress) -> Unit,
+-    ) {
+-        withContext(Dispatchers.Main.immediate) {
+-            onProgress(Progress(downloadedBytes, totalBytes))
+-        }
+-    }
+-
+-    private fun extractGmsApk(
+-        sourceFile: File,
+-        targetFile: File,
+-    ): File? =
+-        runCatching {
+-            ZipFile(sourceFile).use { zip ->
+-                val entries =
+-                    zip.entries().asSequence().filter { entry ->
+-                        val fileName = entry.name.substringAfterLast('/')
+-                        !entry.isDirectory &&
+-                            entry.name.endsWith(".apk", ignoreCase = true) &&
+-                            !fileName.contains("foss-", ignoreCase = true) &&
+-                            !fileName.contains("izzy-", ignoreCase = true)
+-                    }
+-                val preferredArtifactNames =
+-                    listOf(
+-                        "app-gms-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-",
+-                        "app-${BuildConfig.DEVICE}-${BuildConfig.ARCHITECTURE}-",
+-                    )
+-                val selectedEntry =
+-                    entries
+-                        .sortedBy { entry ->
+-                            val fileName = entry.name.substringAfterLast('/')
+-                            val preferredIndex =
+-                                preferredArtifactNames.indexOfFirst { preferredArtifactName ->
+-                                    fileName.contains(preferredArtifactName, ignoreCase = true)
+-                                }
+-                            if (preferredIndex >= 0) preferredIndex else preferredArtifactNames.size
+-                        }.firstOrNull()
+-                        ?: return@runCatching null
+-
+-                zip.getInputStream(selectedEntry).use { input ->
+-                    targetFile.outputStream().use { output -> input.copyTo(output) }
+-                }
+-                targetFile
+-            }
+-        }.getOrNull()
+-
+-    private fun File.containsApkManifest(): Boolean =
+-        runCatching {
+-            ZipFile(this).use { zip -> zip.getEntry("AndroidManifest.xml") != null }
+-        }.getOrDefault(false)
+-
+-    private fun File.renameAsApk(): File {
+-        val apkFile = File(parentFile, ApkFileName)
+-        if (this == apkFile) return this
+-        if (!renameTo(apkFile)) {
+-            copyTo(apkFile, overwrite = true)
+-            delete()
+-        }
+-        return apkFile
+-    }
+-
+-    private fun installApk(
+-        context: Context,
+-        apkFile: File,
+-    ) {
+-        val uri =
+-            FileProvider.getUriForFile(
+-                context,
+-                "${context.packageName}.FileProvider",
+-                apkFile,
+-            )
+-        val intent =
+-            Intent(Intent.ACTION_VIEW)
+-                .setDataAndType(uri, ApkMimeType)
+-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+-        context.startActivity(intent)
+-    }
+-
+-    private const val UpdateDirectoryName = "app_update"
+-    private const val DownloadFileName = "archive-tune-update.download"
+-    private const val ApkFileName = "archive-tune-update.apk"
+-    private const val ApkMimeType = "application/vnd.android.package-archive"
+-    private const val STREAM_BUFFER_SIZE = 256 * 1024
+-    private const val PROGRESS_UPDATE_INTERVAL_MS = 200L
++    data class Progress(val bytesDownloaded: Long, val totalBytes: Long)
++    suspend fun install(url: String, onProgress: (Progress) -> Unit): Boolean { return false }
+ }
+diff --git a/app/src/main/kotlin/moe/rukamori/archivetune/utils/ArtworkStorage.kt b/app/src/main/kotlin/moe/rukamori/archivetune/utils/ArtworkStorage.kt
+index bf4eaf098..f8aa82570 100644
+--- a/app/src/main/kotlin/moe/rukamori/archivetune/utils/ArtworkStorage.kt
++++ b/app/src/main/kotlin/moe/rukamori/archivetune/utils/ArtworkStorage.kt
+@@ -27,7 +27,6 @@ object ArtworkStorage {
+     private const val FILENAME = "archivetune_saved_artworks.json"
+     private val json =
+         Json {
+-            prettyPrint = true
+             ignoreUnknownKeys = true
+         }
+ 
