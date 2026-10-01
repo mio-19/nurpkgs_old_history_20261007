@@ -109,6 +109,7 @@ stdenv.mkDerivation (finalAttrs: {
     patch -p1 < ${./app-source.patch}
     patch -p1 < ${./settings.patch}
     patch -p1 < ${./app-build.patch}
+    python3 ${./fix_theme.py}
     echo "dependencies { implementation(\"org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0\") }" >> app/build.gradle.kts
     patch -p1 < ${./challenge.patch}
     sed -i "s/chain.withRequest(refreshedRequest).proceed()/chain.proceed(refreshedRequest)/g" app/src/main/kotlin/moe/rukamori/archivetune/utils/PlaylistCoverInterceptor.kt
@@ -171,7 +172,7 @@ PYTHON_EOF
     runHook postGradleUpdate
   '';
 
-  nativeBuildInputs = [
+  nativeBuildInputs = [ 
     python3
     gradle
     jdk
