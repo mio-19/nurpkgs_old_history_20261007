@@ -2,6 +2,9 @@ package kotlinx.serialization.json
 
 class JsonBuilder {
     var ignoreUnknownKeys: Boolean = false
+    var prettyPrint: Boolean = false
+    var encodeDefaults: Boolean = false
+    var isLenient: Boolean = false
 }
 
 class Json(builderAction: JsonBuilder.() -> Unit = {}) {

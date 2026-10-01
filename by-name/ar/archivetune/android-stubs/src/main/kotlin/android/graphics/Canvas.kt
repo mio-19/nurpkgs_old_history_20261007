@@ -3,6 +3,8 @@ package android.graphics
 open class Canvas {
     constructor()
     constructor(bitmap: Bitmap)
+    open val width: Int = 0
+    open val height: Int = 0
     open fun drawColor(color: Int) {}
     open fun drawCircle(cx: Float, cy: Float, radius: Float, paint: Paint) {}
     open fun drawBitmap(bitmap: Bitmap, left: Float, top: Float, paint: Paint?) {}
