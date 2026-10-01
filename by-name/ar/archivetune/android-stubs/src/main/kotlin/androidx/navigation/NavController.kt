@@ -13,9 +13,14 @@ open class NavController {
 
 open class NavHostController : NavController()
 
+open class NavDestination {
+    val route: String? = null
+}
+
 open class NavBackStackEntry {
     val arguments: android.os.Bundle? = null
     val savedStateHandle: androidx.lifecycle.SavedStateHandle = androidx.lifecycle.SavedStateHandle()
+    val destination: NavDestination? = null
 }
 
 class NavOptionsBuilder {
