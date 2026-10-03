@@ -274,6 +274,9 @@ let
     name = "piper-phonemize";
     inherit (go-piper) src;
     sourceRoot = "${go-piper.src.name}/piper-phonemize";
+    postPatch = ''
+      sed -i 's/std::cerr << phoneme/std::cerr << (uint32_t)phoneme/g' src/test.cpp || true
+    '';
     buildInputs = [
       espeak-ng'
       onnxruntime
