@@ -99,10 +99,12 @@ stdenv.mkDerivation (finalAttrs: {
     # Copy our desktop UI components
     patch -p1 < ${./desktop-ui.patch}
 
-    # Fix shapes parameter in TextButton
+    # Fix shapes parameter in TextButton/SegmentedButton (avoid mangling MaterialTheme.shapes.xxx)
     find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/@DrawableRes//g" {} +
     find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/shapes = ButtonDefaults.shapes()/shape = ButtonDefaults.textShape/g" {} +
-    find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/shapes = /shape = /g" {} +
+    find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/shapes = SegmentedButtonDefaults/shape = SegmentedButtonDefaults/g" {} +
+    find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/shapes = IconButtonDefaults/shape = IconButtonDefaults/g" {} +
+    find app/src/main/kotlin -type f -name "*.kt" -exec sed -i "s/shapes = expressiveShapes/shapes = expressiveShapes/g" {} +
     sed -i 's/DefaultCastPlaybackRepository(context.applicationContext)/TODO()/g' app/src/main/kotlin/moe/rukamori/archivetune/cast/CastPlaybackRepositoryLocator.kt
     # Apply build script patches
     patch -p1 < ${./root-build.patch}
