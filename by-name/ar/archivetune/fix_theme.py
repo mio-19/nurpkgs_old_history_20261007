@@ -75,14 +75,19 @@ with open('app/src/main/kotlin/moe/rukamori/archivetune/ui/svg/DynamicSVGImage.k
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import moe.rukamori.archivetune.ui.theme.palette.TonalPalettes
 
+/*
+ * The real implementation renders SVG through com.caverock.androidsvg and android.graphics.Picture,
+ * which the desktop port has no equivalent for. Call sites in upstream pass svgImageString /
+ * tonalPalettes / isDarkTheme, so the parameter names must match exactly.
+ */
 @Composable
 fun DynamicSVGImage(
+    svgImageString: String,
+    tonalPalettes: TonalPalettes,
+    isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
-    contentDescription: String? = null,
-    svgString: String,
-    color: Color = Color.Unspecified
 ) {}
 """)
 
@@ -94,6 +99,15 @@ import android.net.Uri
 import androidx.compose.ui.text.font.FontFamily
 
 object CustomFontLoader {
+    // Upstream's font picker launches with this array; omitting it was an unresolved reference.
+    val supportedMimeTypes =
+        arrayOf(
+            "font/ttf",
+            "application/x-font-ttf",
+            "application/x-font-truetype",
+            "application/octet-stream",
+        )
+
     fun displayName(context: Context, uri: Uri): String = ""
     fun isSupportedTtf(context: Context, uri: Uri): Boolean = false
     suspend fun loadFontFamily(context: Context, uriString: String): FontFamily? = androidx.compose.ui.text.font.FontFamily.Default
@@ -101,6 +115,39 @@ object CustomFontLoader {
 """)
 
 import glob
+
+# compose 1.9 gives Modifier.clickable's `indication` a default; 1.7 requires it. Only the call
+# site that omits it (the one directly before onClick) needs the argument.
+_lm = 'app/src/main/kotlin/moe/rukamori/archivetune/ui/screens/library/LibraryMixScreen.kt'
+try:
+    _src = open(_lm).read()
+    _new = re.sub(
+        r'(interactionSource = interactionSource,\n)(\s*)(onClick = onClick,)',
+        r'\1\2indication = null,\n\2\3',
+        _src,
+    )
+    if _new != _src:
+        open(_lm, 'w').write(_new)
+except FileNotFoundError:
+    pass
+
+
+# compose 1.7's material3 SliderState.onValueChange setter is internal, so upstream's
+# post-construction `sliderState.onValueChange = { ... }` cannot compile. The port's
+# rememberSliderState ignores it anyway, so the assignment is dropped.
+_pref = 'app/src/main/kotlin/moe/rukamori/archivetune/ui/component/Preference.kt'
+try:
+    _src = open(_pref).read()
+    _new = re.sub(
+        r'\n(\s*)[A-Za-z]*State\.onValueChange = \{(?:[^{}]|\{[^{}]*\})*\}',
+        lambda m: '\n' + m.group(1) + '// SliderState.onValueChange is internal in compose 1.7',
+        _src,
+    )
+    if _new != _src:
+        open(_pref, 'w').write(_new)
+except FileNotFoundError:
+    pass
+
 for file in glob.glob('app/src/main/kotlin/moe/rukamori/archivetune/**/*.kt', recursive=True):
     with open(file, 'r') as f:
         content = f.read()
@@ -132,3 +179,87 @@ val LocalPlayerAwareWindowInsets =
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
 """)
+
+# Material3-expressive members that upstream Android's material3 has as *members* of
+# the various *Defaults singletons, but which the desktop port supplies as extension
+# functions in android-stubs (it cannot add members to the real classes). Callers in
+# upstream code reference them without an import, so add the import where needed.
+EXTENSION_IMPORTS = [
+    ('ListItemDefaults.segmentedShapes(', 'androidx.compose.material3.segmentedShapes'),
+    ('ListItemDefaults.segmentedColors(', 'androidx.compose.material3.segmentedColors'),
+    ('ListItemDefaults.SegmentedGap', 'androidx.compose.material3.SegmentedGap'),
+    ('ListItemDefaults.shapes(', 'androidx.compose.material3.shapes'),
+    ('IconButtonDefaults.shapes(', 'androidx.compose.material3.shapes'),
+    ('ButtonDefaults.shapes(', 'androidx.compose.material3.shapes'),
+    ('maskClip(', 'androidx.compose.ui.draw.maskClip'),
+    ('maskBorder(', 'androidx.compose.ui.draw.maskBorder'),
+    ('standardFloatingToolbarColors(', 'androidx.compose.material3.standardFloatingToolbarColors'),
+    ('ButtonDefaults.squareShape', 'androidx.compose.material3.squareShape'),
+    ('PullToRefreshDefaults.LoadingIndicator', 'androidx.compose.material3.pulltorefresh.LoadingIndicator'),
+    ('upstream.uri', 'androidx.media3.datasource.uri'),
+    ('upstream.responseHeaders', 'androidx.media3.datasource.responseHeaders'),
+    ('ButtonDefaults.SmallContentPadding', 'androidx.compose.material3.SmallContentPadding'),
+    ('ButtonDefaults.MediumContentPadding', 'androidx.compose.material3.MediumContentPadding'),
+    ('ButtonDefaults.LargeContentPadding', 'androidx.compose.material3.LargeContentPadding'),
+    ('ButtonDefaults.MediumContainerHeight', 'androidx.compose.material3.MediumContainerHeight'),
+    ('ButtonDefaults.LargeContainerHeight', 'androidx.compose.material3.LargeContainerHeight'),
+    ('ButtonDefaults.SmallContainerHeight', 'androidx.compose.material3.SmallContainerHeight'),
+    ('ButtonDefaults.contentPaddingFor(', 'androidx.compose.material3.contentPaddingFor'),
+    ('ButtonDefaults.iconSizeFor(', 'androidx.compose.material3.iconSizeFor'),
+    ('ButtonDefaults.iconSpacingFor(', 'androidx.compose.material3.iconSpacingFor'),
+    ('ButtonDefaults.textStyleFor(', 'androidx.compose.material3.textStyleFor'),
+    ('FilterChipDefaults.shapes(', 'androidx.compose.material3.shapes'),
+    ('MaterialTheme.motionScheme', 'androidx.compose.material3.motionScheme'),
+    ('titleLargeEmphasized', 'androidx.compose.material3.titleLargeEmphasized'),
+    ('titleMediumEmphasized', 'androidx.compose.material3.titleMediumEmphasized'),
+    ('labelLargeEmphasized', 'androidx.compose.material3.labelLargeEmphasized'),
+    ('labelMediumEmphasized', 'androidx.compose.material3.labelMediumEmphasized'),
+    ('bodyLargeEmphasized', 'androidx.compose.material3.bodyLargeEmphasized'),
+    ('bodyMediumEmphasized', 'androidx.compose.material3.bodyMediumEmphasized'),
+    ('headlineSmallEmphasized', 'androidx.compose.material3.headlineSmallEmphasized'),
+    ('writeTimeout(', 'okhttp3.writeTimeout'),
+    ('retryOnConnectionFailure(', 'okhttp3.retryOnConnectionFailure'),
+    ('cache.uid', 'androidx.media3.datasource.cache.uid'),
+    ('cache.keys', 'androidx.media3.datasource.cache.keys'),
+    ('cache.cacheSpace', 'androidx.media3.datasource.cache.cacheSpace'),
+]
+
+for path in glob.glob('app/src/main/kotlin/moe/rukamori/archivetune/**/*.kt', recursive=True):
+    with open(path, 'r') as f:
+        content = f.read()
+    needed = sorted({
+        imp for marker, imp in EXTENSION_IMPORTS
+        if marker in content and ('import %s\n' % imp) not in content
+    })
+    if not needed:
+        continue
+    lines = content.split('\n')
+    imports = [i for i, l in enumerate(lines) if l.startswith('import ')]
+    if not imports:
+        continue
+    at = imports[-1] + 1
+    lines[at:at] = ['import %s' % imp for imp in needed]
+    with open(path, 'w') as f:
+        f.write('\n'.join(lines))
+
+# Kotlin cannot import a *companion object* member through the enclosing class name
+# (`import Foo.CONST`), only through the companion (`import Foo.Companion.CONST`).
+# media3/glance are Java upstream, so upstream's `import Foo.CONST` lines are valid
+# there; android-stubs reimplements them as Kotlin, so rewrite the imports.
+COMPANION_IMPORT = re.compile(
+    r'^import ((?:androidx\.media3|androidx\.glance|com\.materialkolor)'
+    # The segment before the member must be a CLASS (upper-case initial), not a package:
+    # requiring that keeps `pkg.compose.SURFACE_TYPE_TEXTURE_VIEW` (a top-level const)
+    # from being rewritten into the non-existent `pkg.compose.Companion.SURFACE_TYPE_TEXTURE_VIEW`.
+    r'\.[A-Za-z0-9_.]*?\.[A-Z][A-Za-z0-9_]*)\.([A-Z][A-Z0-9_]{2,})$',
+    re.MULTILINE,
+)
+
+for path in glob.glob('app/src/main/kotlin/moe/rukamori/archivetune/**/*.kt', recursive=True):
+    with open(path, 'r') as f:
+        content = f.read()
+    rewritten = COMPANION_IMPORT.sub(r'import \1.Companion.\2', content)
+    if rewritten != content:
+        with open(path, 'w') as f:
+            f.write(rewritten)
+
