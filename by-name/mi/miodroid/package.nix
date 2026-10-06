@@ -69,6 +69,7 @@ let
       ./patches/0004-android16-vendor-detection.patch
       ./patches/0005-multi-instance-support.patch
       ./patches/0006-rootless-container-manager.patch
+      ./patches/0007-rootless-mode.patch
     ];
     patchFlags = [ "-p1" ];
 
@@ -92,10 +93,6 @@ let
         tools/helpers/instance.py tools/helpers/ipc.py \
         tools/actions/session_manager.py
       sed -i 's/waydroid/miodroid/g' tools/helpers/instance.py
-      substituteInPlace tools/helpers/instance.py \
-        --replace-fail \
-          'return f"miodroid{get_suffix_dash()}"' \
-          'return f"miodroid0{get_suffix_dash()}"'
       substituteInPlace tools/helpers/instance.py \
         --replace-fail \
           'return f"/var/lib/miodroid{get_suffix()}"' \
@@ -281,7 +278,6 @@ let
       # Applied here rather than in the series above: the rootless changes
       # edit the rebranded code (miodroid paths, the multi-instance
       # helpers) and add tools/helpers/rootless.py.
-      patch -p1 --batch < ${./patches/0007-rootless-mode.patch}
 
     '';
 
