@@ -1,5 +1,5 @@
 diff --git a/src/background/extension.ts b/src/background/extension.ts
-index f32610a..6977d7f 100644
+index 09c3f0e..f3e7b49 100644
 --- a/src/background/extension.ts
 +++ b/src/background/extension.ts
 @@ -158,6 +158,25 @@ export class Extension {
@@ -28,7 +28,7 @@ index f32610a..6977d7f 100644
      private static updateAutoState() {
          const {mode, behavior, enabled} = UserStorage.settings.automation;
  
-@@ -560,7 +579,7 @@ export class Extension {
+@@ -553,7 +572,7 @@ export class Extension {
          }
          if (Extension.isExtensionSwitchedOn() && $settings.changeBrowserTheme != null && prev.changeBrowserTheme !== $settings.changeBrowserTheme) {
              if ($settings.changeBrowserTheme) {
@@ -37,7 +37,7 @@ index f32610a..6977d7f 100644
              } else {
                  resetWindowTheme();
              }
-@@ -585,7 +604,7 @@ export class Extension {
+@@ -578,7 +597,7 @@ export class Extension {
          UserStorage.set({theme: {...UserStorage.settings.theme, ...$theme}});
  
          if (Extension.isExtensionSwitchedOn() && UserStorage.settings.changeBrowserTheme) {
@@ -46,7 +46,7 @@ index f32610a..6977d7f 100644
          }
  
          Extension.onSettingsChanged();
-@@ -654,7 +673,7 @@ export class Extension {
+@@ -647,7 +666,7 @@ export class Extension {
  
          if (UserStorage.settings.changeBrowserTheme) {
              if (Extension.isExtensionSwitchedOn() && Extension.autoState !== 'scheme-light') {
