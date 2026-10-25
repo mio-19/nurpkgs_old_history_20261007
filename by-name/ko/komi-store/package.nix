@@ -60,7 +60,7 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "komi-store";
-  version = "1.9.3";
+  version = "1.9.4";
 
   strictDeps = true;
 
@@ -68,7 +68,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "kurikomi-labs";
     repo = "komi-store";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-rop3eKaD8sX7u28C8yJQL+L9gcl1OiXCRsPEAWYxbqM=";
+    hash = "sha256-yIrTVB22Y1bFaeQeEtRAA/YZDn8QloD88OOC/3p4OiY=";
   };
 
   # Desktop-only: upstream also targets Android (SDK not available in nixpkgs).
